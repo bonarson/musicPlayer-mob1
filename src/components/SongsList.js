@@ -1,13 +1,15 @@
 import { FlatList } from "react-native";
 import Song from "./Song";
 
-const SongsList = ({ songs }) => {
+const SongsList = ({ songs,...otherProps }) => {
     return (
         <FlatList
             data={songs}
+            extraData={songs}
             renderItem={({ item }) => <Song {...item} />}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(_,index) => index.toString()}
             showsVerticalScrollIndicator={false}
+            {...otherProps}
         />
     )
 }

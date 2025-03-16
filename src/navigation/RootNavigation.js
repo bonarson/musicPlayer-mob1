@@ -8,6 +8,7 @@ import PlayerScreen from "../screens/PlayerScreen";
 import RecentAddScreen from "../screens/RecentAddScreen";
 import RecentPlayScreen from "../screens/RecentPlayScreen";
 import SearchScreen from "../screens/SearchScreen";
+import SongsListScreen from "../screens/SongsListScreen";
 import SplashScreen from "../screens/SplashScreen";
 import FolderNavigator from "./FolderNavigator";
 
@@ -33,6 +34,7 @@ const RootNavigator = () => {
             <NativeStack.Screen name="RecentPlay" component={RecentPlayScreen} />
             <NativeStack.Screen name="RecentAdd" component={RecentAddScreen} />
             <NativeStack.Screen name="Search" component={SearchScreen} />
+            <NativeStack.Screen name="SongsList" component={SongsListScreen} />
         </NativeStack.Navigator>
     );
 };

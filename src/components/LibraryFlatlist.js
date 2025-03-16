@@ -1,15 +1,29 @@
 import React from "react";
-import { FlatList, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { FlatList, StyleSheet } from "react-native";
+import Album from "./Album";
+import Artist from "./Artist";
+import Genre from "./Genre";
 
-const LibraryFlatlist = ({ data }) => {
+const LibraryFlatlist = ({ data, dataType }) => {
     return (
         <FlatList
             data={data}
-            renderItem={({ item }) => (
-                <TouchableOpacity style={styles.imageContainer} >
-                    <Image source={item.image} style={styles.image} />
-                </TouchableOpacity>
-            )}
+            renderItem={({ item }) => {
+                if (dataType === "albums") {
+                    return <Album {...item} />;
+                } else if (dataType === "artists") {
+                    // Affiche les informations de l'artiste
+                    return <Artist {...item} />;
+                } else if (dataType === "genres") {
+                    // Si dataType est "genres", affiche le nom du fichier audio
+                    return <Genre {...item} />;
+                } else {
+                    return <Genre {...item} />;
+                }
+            }}
+
+
+
             keyExtractor={(item, index) => index.toString()}
             numColumns={2}
             showsVerticalScrollIndicator={false}

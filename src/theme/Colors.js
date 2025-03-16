@@ -5,4 +5,5 @@ export const colors = {
     black: '#000',
     danger:"#f50514",
     blackTransparent:"rgba(0,0,0,0.6)",
+    light:"#ccc",
 };
