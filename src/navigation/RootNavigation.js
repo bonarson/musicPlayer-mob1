@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FavoriteScreen from "../screens/FavoriteScreen";
+import FolderScreen from "../screens/FolderScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
 import MostPlayedScreen from "../screens/MostPlayedScreen";
@@ -10,7 +11,6 @@ import RecentPlayScreen from "../screens/RecentPlayScreen";
 import SearchScreen from "../screens/SearchScreen";
 import SongsListScreen from "../screens/SongsListScreen";
 import SplashScreen from "../screens/SplashScreen";
-import FolderNavigator from "./FolderNavigator";
 
 
 
@@ -26,7 +26,7 @@ const RootNavigator = () => {
             <NativeStack.Screen name="Splash" component={SplashScreen} />
             <NativeStack.Screen name="Home" component={HomeScreen} />
             <NativeStack.Screen name="Library" component={LibraryScreen} />
-            <NativeStack.Screen name="FolderNavigator" component={FolderNavigator} />
+            <NativeStack.Screen name="Folders" component={FolderScreen} />
             <NativeStack.Screen name="Favorites" component={FavoriteScreen} />
             <NativeStack.Screen name="MostPlayed" component={MostPlayedScreen} />
             <NativeStack.Screen name="Player" component={PlayerScreen} />

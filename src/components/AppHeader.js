@@ -4,7 +4,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors } from "../theme/Colors";
 import AppText from "./AppText";
 
-const AppHeader = ({ primaryScreen, title, searchIcon, playListIcon }) => {
+const AppHeader = ({ primaryScreen, title, searchIcon, playListIcon, plusIcon, onPlusIconPress, clearIcon, onClearIconPress }) => {
 
     const navigation = useNavigation();
 
@@ -48,11 +48,23 @@ const AppHeader = ({ primaryScreen, title, searchIcon, playListIcon }) => {
                     </TouchableOpacity>
                 )}
 
-                {playListIcon && (
-                    <TouchableOpacity onPress={() => navigation.navigate("PlayList")}>
+                {plusIcon && (
+                    <TouchableOpacity onPress={onPlusIconPress}>
 
                         <MaterialCommunityIcons
-                            name="playlist-music"
+                            name="plus-circle"
+                            size={30}
+                            color={colors.white}
+                        />
+
+                    </TouchableOpacity>
+                )}
+
+                {clearIcon && (
+                    <TouchableOpacity onPress={onClearIconPress}>
+
+                        <MaterialCommunityIcons
+                            name="delete-empty"
                             size={30}
                             color={colors.white}
                         />

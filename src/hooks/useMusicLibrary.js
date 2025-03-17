@@ -8,12 +8,20 @@ const useMusicLibrary = (sortBy = MediaLibrary.SortBy.default) => {
     const [lastMusicAsset, setLastMusicAsset] = useState({});
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const assets = useSelector((state) => state.queue.assets);
+    const [filteredAssets, setFilteredAssets] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
+
     const dispatch = useDispatch();
 
 
     useEffect(() => {
-        getAudios()
+        getAudios();
     }, [])
+
+    useEffect(() => {
+        dispatch(setQueue(assets));
+        setFilteredAssets(assets);
+    }, [assets]);
 
     const getAudios = async () => {
         const results = await MediaLibrary.getAssetsAsync({
@@ -23,7 +31,7 @@ const useMusicLibrary = (sortBy = MediaLibrary.SortBy.default) => {
         });
 
         dispatch(setAssets(results.assets));
-        dispatch(setQueue(results.assets));
+
         setLastMusicAsset(results.endCursor);
     };
     const loadMore = async () => {
@@ -38,11 +46,62 @@ const useMusicLibrary = (sortBy = MediaLibrary.SortBy.default) => {
 
         const newAssets = [...assets, ...results.assets];
         dispatch(setAssets(newAssets));
-        dispatch(setQueue(newAssets));
+
         setLastMusicAsset(results.endCursor);
         setIsLoadingMore(false);
     };
-    return { assets, isLoadingMore, loadMore };
+
+
+    const search = async (query) => {
+        setSearchQuery(query);
+        if (query !== "") {
+            const results = await MediaLibrary.getAssetsAsync({
+                mediaType: MediaLibrary.MediaType.audio,
+                sortBy: sortBy
+
+            });
+            setFilteredAssets(results.assets.filter(asset =>
+                asset.filename.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+            )
+            );
+
+            setLastMusicAsset(results.endCursor)
+        } else {
+            setFilteredAssets(assets);
+        }
+    };
+
+    const loadMoreSearch = async () => {
+        try {
+            setIsLoadingMore(true);
+
+            const results = await MediaLibrary.getAssetsAsync({
+                after: lastMusicAsset,
+                mediaType: MediaLibrary.MediaType.audio,
+                sortBy: sortBy,
+            });
+
+            const newAssets = searchQuery !== ""
+                ? [
+                    ...filteredAssets,
+                    ...results.assets.filter((asset) =>
+                        asset.filename.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                ]
+                : [...filteredAssets, ...results.assets];
+
+            setFilteredAssets(newAssets);
+            setLastMusicAsset(results.endCursor);
+        } catch (error) {
+            console.error("Erreur lors du chargement des musiques :", error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
+
+
+    return { assets, isLoadingMore, loadMore, filteredAssets, search, loadMoreSearch };
 };
 
 export default useMusicLibrary;

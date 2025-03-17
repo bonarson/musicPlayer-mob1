@@ -9,7 +9,7 @@ export const categories = [
         iconName: "folder-multiple",
         title: "Folder",
         itemCount: 100,
-        screenName:"FolderNavigator"
+        screenName:"Folders"
     },
     {
         iconName: "heart",

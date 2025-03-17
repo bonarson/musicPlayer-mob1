@@ -5,7 +5,7 @@ import { colors } from "../theme/Colors";
 import Input from "./Input";
 
 
-const AppSearchHeader = ({ primaryScreen, title, searchIcon, playListIcon }) => {
+const AppSearchHeader = ({ primaryScreen, searchIcon, playListIcon, onSearch }) => {
 
     const navigation = useNavigation();
 
@@ -30,7 +30,9 @@ const AppSearchHeader = ({ primaryScreen, title, searchIcon, playListIcon }) => 
 
 
 
-                <Input placeholder="Search" customStyles={styles.searchInput}
+                <Input placeholder="Search"
+                    onChangeText={(text) => onSearch(text)}
+                    customStyles={styles.searchInput}
                     autoFocus
                     blurOnSubmit
                 />

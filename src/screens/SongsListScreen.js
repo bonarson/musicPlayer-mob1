@@ -8,7 +8,7 @@ import SongsList from "../components/SongsList";
 import { globalStyles } from "../theme/GlobalStyles";
 
 const SongsListScreen = () => {
-    const { albumName, artisId, genreId, title } = useRoute().params; // Assurez-vous que vous accédez bien aux paramètres
+    const { albumName, artisId, genreId, folderId, title } = useRoute().params; // Assurez-vous que vous accédez bien aux paramètres
     const [assets, setAssets] = useState([]);
 
     useEffect(() => {
@@ -18,7 +18,10 @@ const SongsListScreen = () => {
             fetchArtistsAssets(); // Appel de la fonction pour artistes
         } else if (genreId) {
             fetchGenresAssets(); // Appel de la fonction pour genres
+        } else if (folderId) {
+            fetchFoldersAssets();
         }
+
     }, [albumName, artisId, genreId]); // Dépendances mises à jour
 
     const fetchAlbumsAssets = async () => {
@@ -42,6 +45,15 @@ const SongsListScreen = () => {
     const fetchGenresAssets = async () => {
         try {
             const songs = await MusicLibrary.getAssetsAsync({ genre: genreId, mediaType: MusicLibrary.MediaType.audio });
+            setAssets(songs.assets); // Filtrage des fichiers audio
+        } catch (error) {
+            console.error("Erreur de récupération des genres : ", error);
+        }
+    };
+
+    const fetchFoldersAssets = async () => {
+        try {
+            const songs = await MusicLibrary.getAssetsAsync({ genre: folderId, mediaType: MusicLibrary.MediaType.audio });
             setAssets(songs.assets); // Filtrage des fichiers audio
         } catch (error) {
             console.error("Erreur de récupération des genres : ", error);

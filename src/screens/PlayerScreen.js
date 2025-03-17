@@ -11,8 +11,10 @@ import AppHeader from "../components/AppHeader";
 import AppText from "../components/AppText";
 import ArtWorkImage from "../components/ArtworkImage";
 import Screen from "../components/Screen";
-import { setAssets, setAudioState, setCurrentPlayingAudio, setQueue, setShuffleMode, setSound } from "../features/queue/queueSlice";
+import { setAudioState, setCurrentPlayingAudio, setQueue, setShuffleMode, setSound } from "../features/queue/queueSlice";
+import { setFavorites, setMostPlayed, setRecentlyPlayed } from "../features/storage/storageSlice";
 import { colors } from "../theme/Colors";
+
 
 
 const PlayerScreen = ({ route }) => {
@@ -21,11 +23,19 @@ const PlayerScreen = ({ route }) => {
     // Récupération des données de la route
     const { id, uri, artwork, artist, filename, title, duration } = route.params;
 
-    // Sélection des états globaux depuis Redux
+    const assets = useSelector((state) => state.queue.assets);
     const queue = useSelector((state) => state.queue.queue);
+    const shuffleMode = useSelector((state) => state.queue.shuffleMode);
     const audioState = useSelector((state) => state.queue.audioState);
-    const currentPlayingSong = useSelector((state) => state.queue.currentPlayingSong);
+    const currentPlayingAudio = useSelector(
+        (state) => state.queue.currentPlayingAudio
+    )
     const sound = useSelector((state) => state.queue.sound);
+
+    const favorites = useSelector(state => state.storage.favorites);
+    const recentlyPlayed = useSelector(state => state.storage.recentlyPlayed);
+    const mostPlayed = useSelector(state => state.storage.mostPlayed);
+
 
     // État local pour la chanson en cours
     const [currentSong, setCurrentSong] = useState({
@@ -33,17 +43,28 @@ const PlayerScreen = ({ route }) => {
     });
 
     useEffect(() => {
-        if (!currentPlayingSong || currentPlayingSong.id !== currentSong.id) {
+        if (!currentPlayingAudio || currentPlayingAudio.id !== currentSong.id) {
             initAudio();
         }
+
         dispatch(setCurrentPlayingAudio(currentSong));
-    }, [currentSong]);
+
+        if (currentSong) {
+            updateRecentlyPlayed(); // Met à jour les chansons récemment écoutées
+            updateMostPlayed();     // Met à jour les chansons les plus écoutées
+        }
+    }, [currentSong, currentPlayingAudio]); // Dépendance pour la mise à jour lorsque `currentSong` ou `currentPlayingAudio` change
+
+
 
 
     useEffect(() => {
-        dispatch(setQueue(setShuffleMode ? shuffle(queue) : setAssets));
+        dispatch(setQueue(shuffleMode ? shuffle(queue) : assets));
 
-    }, [setShuffleMode]);
+    }, [shuffleMode]);
+
+
+
 
     const initAudio = async () => {
         try {
@@ -89,6 +110,45 @@ const PlayerScreen = ({ route }) => {
             console.error("Erreur lors de l'initialisation de l'audio :", error);
         }
     };
+
+
+    const updateRecentlyPlayed = () => {
+        const newRecentlyPlayed = [...recentlyPlayed];
+        const index = newRecentlyPlayed.findIndex((assets) => assets.id === currentSong.id);
+
+        if (index !== -1) {
+            newRecentlyPlayed.splice(index, 1);
+        }
+
+        newRecentlyPlayed.unshift(currentSong);
+
+        // Dispatch la mise à jour vers Redux
+        dispatch(setRecentlyPlayed(newRecentlyPlayed));
+    };
+
+    const updateMostPlayed = () => {
+        const newMostPlayed = [...mostPlayed];
+        const index = newMostPlayed.findIndex(asset => asset.id === currentSong.id);
+
+        if (index !== -1) {
+            newMostPlayed[index] = {
+                ...newMostPlayed[index],
+                count: newMostPlayed[index].count + 1
+            };
+        } else {
+            newMostPlayed.push({
+                ...currentSong,
+                count: 1,
+            });
+        }
+
+        newMostPlayed.sort((a, b) => b.count - a.count);
+
+        // Dispatch la mise à jour vers Redux
+        dispatch(setMostPlayed(newMostPlayed));
+    };
+
+
 
 
     const togglePlay = async () => {
@@ -139,9 +199,24 @@ const PlayerScreen = ({ route }) => {
         await sound.setIsLoopingAsync(!audioState.isLooping);
     }
 
-    const toogleShuffle =  () => {
-        dispatch(setShuffleMode(!setShuffleMode));
+    const toogleShuffle = () => {
+        dispatch(setShuffleMode(!shuffleMode));
     }
+
+    const toggleFavorites = () => {
+        const newFavorites = [...favorites];
+        const index = newFavorites.findIndex(
+            favorite => favorite.id === currentSong.id
+        );
+
+        if (index !== -1) {
+            newFavorites.splice(index, 1);
+        } else {
+            newFavorites.unshift(currentSong);
+        }
+
+        dispatch(setFavorites(newFavorites));
+    };
 
     return (
         <Screen>
@@ -152,12 +227,16 @@ const PlayerScreen = ({ route }) => {
 
             <View style={styles.songInfo}>
                 <View style={styles.songDetails}>
-                    <TouchableOpacity>
-                        <MaterialCommunityIcons name="heart" color={colors.danger} size={40} />
+                    <TouchableOpacity onPress={toggleFavorites}>
+                        <MaterialCommunityIcons name="heart"
+                            color={favorites.some(favorite => favorite.id === currentSong.id) ? colors.danger : colors.white}
+                            size={40}
+                        />
+
                     </TouchableOpacity>
                     <View style={styles.songTitleAndArtist}>
                         <AppText
-                            text={truncateText((currentSong.filename || currentSong.title).toLowerCase())}
+                            text={truncateText((currentSong.filename || currentSong.title).toLowerCase(), 24)}
                             customStyles={styles.songTitle}
                         />
 
@@ -188,11 +267,11 @@ const PlayerScreen = ({ route }) => {
 
             <View style={styles.controls}>
                 <TouchableOpacity onPress={toogleShuffle}>
-                   
-                    <MaterialCommunityIcons name="shuffle-variant"
-                     color={setShuffleMode ? colors.white : colors.light
 
-                    }
+                    <MaterialCommunityIcons name="shuffle-variant"
+                        color={shuffleMode ? colors.white : colors.light
+
+                        }
                         size={30}
                     />
                 </TouchableOpacity>
