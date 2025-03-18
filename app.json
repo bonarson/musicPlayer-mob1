@@ -8,9 +8,19 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/laurene.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
+    },
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "taskManager": {
+      "backgroundTask": {
+        "enabled": true
+      }
     },
     "ios": {
       "supportsTablet": true

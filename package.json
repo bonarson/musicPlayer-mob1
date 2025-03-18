@@ -33,7 +33,10 @@
     "react-native-screens": "~4.4.0",
     "react-native-tab-view": "^4.0.5",
     "react-native-web": "~0.19.13",
-    "react-redux": "^9.2.0"
+    "react-redux": "^9.2.0",
+    "expo-task-manager": "~12.0.5",
+    "expo-background-fetch": "~13.0.5",
+    "expo-notifications": "~0.29.14"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

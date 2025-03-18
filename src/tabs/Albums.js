@@ -17,7 +17,7 @@ const Albums = () => {
 
     return (
         <View style={{ flex: 1 }}>
-            <LibraryFlatlist data={albums} dataType="albums" />
+            <LibraryFlatlist data={albums} dataType="album" />
         </View>
     )
 }

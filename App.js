@@ -1,16 +1,20 @@
 import { Audio } from "expo-av";
 import * as MediaLibrary from "expo-media-library";
-import { useEffect } from "react";
-import { PermissionsAndroid, Platform } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { Provider } from "react-redux";
 import Main from "./src/Main";
 import { store } from "./src/app/store";
 
 export default function App() {
+  const [hasPermission, setHasPermission] = useState(false);
+
   useEffect(() => {
     const setupApp = async () => {
-      await requestPermissions();
-      await audioSetup();
+      const permissionGranted = await requestPermissions();
+      if (permissionGranted) {
+        await audioSetup();
+      }
     };
 
     setupApp();
@@ -21,6 +25,8 @@ export default function App() {
     const { status } = await MediaLibrary.requestPermissionsAsync();
     if (status !== "granted") {
       console.log("Permission refusée pour accéder à la bibliothèque musicale.");
+      Alert.alert("Permission Refusée", "L'application a besoin d'accès à vos fichiers médias.");
+      return false;
     }
 
     // Permissions supplémentaires pour Android
@@ -32,20 +38,40 @@ export default function App() {
 
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
           console.log("Accès au stockage refusé.");
+          Alert.alert("Accès Refusé", "L'application a besoin d'accès au stockage.");
+          return false;
         }
       } catch (err) {
         console.warn("Erreur lors de la demande de permission:", err);
+        return false;
       }
     }
+
+    setHasPermission(true);
+    return true;
   };
 
   // Configuration audio
   const audioSetup = async () => {
-    await Audio.setAudioModeAsync({
-      playThroughEarpieceAndroid: true,
-      staysActiveInBackground: true,
-    });
+    try {
+      await Audio.setAudioModeAsync({
+        playThroughEarpieceAndroid: true,
+        staysActiveInBackground: true,
+      });
+      console.log("Configuration audio réussie.");
+    } catch (error) {
+      console.error("Erreur lors de la configuration audio:", error);
+      Alert.alert("Erreur", "Une erreur est survenue lors de la configuration audio.");
+    }
   };
+
+  if (!hasPermission) {
+    return (
+      <Provider store={store}>
+        <Main />
+      </Provider>
+    );
+  }
 
   return (
     <Provider store={store}>

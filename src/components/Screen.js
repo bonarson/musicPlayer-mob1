@@ -1,8 +1,9 @@
+import Constants from "expo-constants";
 import React from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { colors } from "../theme/Colors";
 
-const { width, height } = Dimensions.get("window");
+// const { width, height } = Dimensions.get("window");
 
 const Screen = ({ children, customStyles }) => {
     return (
@@ -16,9 +17,11 @@ export default Screen;
 
 const styles = StyleSheet.create({
     container: {
-        width, 
-        height, 
+        flex: 1,
+        // width,
+        // height,
         backgroundColor: colors.primary,
-        marginTop: 30,
+        paddingTop: Constants.statusBarHeight,
+        marginTop:-20,
     }
 });

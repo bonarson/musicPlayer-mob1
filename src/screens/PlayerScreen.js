@@ -15,56 +15,173 @@ import { setAudioState, setCurrentPlayingAudio, setQueue, setShuffleMode, setSou
 import { setFavorites, setMostPlayed, setRecentlyPlayed } from "../features/storage/storageSlice";
 import { colors } from "../theme/Colors";
 
+import * as Notifications from 'expo-notifications';
 
+
+import * as TaskManager from "expo-task-manager";
+
+// Définir une tâche en arrière-plan
+TaskManager.defineTask("BACKGROUND_AUDIO", async ({ data, error }) => {
+    if (error) {
+        console.log(error);
+        return;
+    }
+
+    const { eventName } = data;
+
+    if (eventName === "play") {
+        await sound.playAsync();
+    } else if (eventName === "pause") {
+        await sound.pauseAsync();
+    } else if (eventName === "next") {
+        skipNext();
+    } else if (eventName === "previous") {
+        skipPrevious();
+    }
+});
 
 const PlayerScreen = ({ route }) => {
     const dispatch = useDispatch();
 
     // Récupération des données de la route
     const { id, uri, artwork, artist, filename, title, duration } = route.params;
-
     const assets = useSelector((state) => state.queue.assets);
     const queue = useSelector((state) => state.queue.queue);
     const shuffleMode = useSelector((state) => state.queue.shuffleMode);
     const audioState = useSelector((state) => state.queue.audioState);
-    const currentPlayingAudio = useSelector(
-        (state) => state.queue.currentPlayingAudio
-    )
+    const currentPlayingAudio = useSelector((state) => state.queue.currentPlayingAudio);
     const sound = useSelector((state) => state.queue.sound);
 
     const favorites = useSelector(state => state.storage.favorites);
     const recentlyPlayed = useSelector(state => state.storage.recentlyPlayed);
     const mostPlayed = useSelector(state => state.storage.mostPlayed);
 
-
-    // État local pour la chanson en cours
     const [currentSong, setCurrentSong] = useState({
         id, uri, artwork, artist, filename, title, duration,
     });
 
-    useEffect(() => {
-        if (!currentPlayingAudio || currentPlayingAudio.id !== currentSong.id) {
-            initAudio();
-        }
+    const [showMenu, setShowMenu] = useState(false);
 
-        dispatch(setCurrentPlayingAudio(currentSong));
+    useEffect(() => {
+        const setupAudio = async () => {
+            if (!currentPlayingAudio || currentPlayingAudio.id !== currentSong.id) {
+                await initAudio(); 
+                dispatch(setCurrentPlayingAudio(currentSong));
+            }
+        };
+
+        setupAudio();
 
         if (currentSong) {
-            updateRecentlyPlayed(); // Met à jour les chansons récemment écoutées
-            updateMostPlayed();     // Met à jour les chansons les plus écoutées
+            updateRecentlyPlayed();
+            updateMostPlayed();
         }
-    }, [currentSong, currentPlayingAudio]); // Dépendance pour la mise à jour lorsque `currentSong` ou `currentPlayingAudio` change
-
-
+    }, [currentSong]); 
 
 
     useEffect(() => {
         dispatch(setQueue(shuffleMode ? shuffle(queue) : assets));
-
     }, [shuffleMode]);
 
 
+    useEffect(() => {
+        const askNotificationPermissions = async () => {
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('Permission de notification refusée');
+            }
+        };
 
+        askNotificationPermissions();
+    }, []);
+
+
+
+    const setupBackgroundAudio = async () => {
+        await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            staysActiveInBackground: true,
+            playsInSilentModeIOS: true,
+        });
+
+        await Audio.EventEmitter.addListener("playback-status-update", async (status) => {
+            if (status.didJustFinish) {
+                skipNext();
+            }
+        });
+    };
+
+
+    // const initAudio = async () => {
+    //     try {
+    //         if (sound) {
+    //             await sound.stopAsync();
+    //             await sound.unloadAsync();
+    //             dispatch(setAudioState({ state: "paused", isLooping: false, position: 0 }));
+    //         }
+    //         // Encoder l'URI pour éviter les erreurs dues aux caractères spéciaux
+    //         const encodedUri = encodeURI(currentSong.uri);
+    //         console.log("Lecture Encoder  de :", encodedUri); // Ajout du log ici
+
+    //         const { sound: newSound } = await Audio.Sound.createAsync(
+    //             { uri: encodedUri },  // Utilisation de l'URI encodée
+    //             { shouldPlay: true },
+    //             (playbackStatus) => {
+    //                 if (playbackStatus.isLoaded) {
+    //                     dispatch(setAudioState({
+    //                         state: playbackStatus.isPlaying ? "playing" : "paused",
+    //                         isLooping: playbackStatus.isLooping,
+    //                         position: Math.floor(playbackStatus.positionMillis / 1000),
+    //                     })
+    //                     );
+    //                 }
+
+    //                 if (playbackStatus.didJustFinish) {
+    //                     if (!playbackStatus.isLooping) {
+    //                         skipNext();
+    //                     }
+    //                 }
+    //             }
+
+    //         );
+
+    //         dispatch(setSound(newSound));
+    //         dispatch(
+    //             setAudioState({
+    //                 ...audioState,
+    //                 state: "playing",
+    //             })
+    //         )
+    //     } catch (error) {
+    //         console.error("Erreur lors de l'initialisation de l'audio :", error);
+    //     }
+    // };
+
+
+    // Fonction pour demander la permission
+    
+    const requestNotificationPermission = async () => {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert("Permission refusée", "Activez les notifications dans les paramètres.");
+            return false;
+        }
+        return true;
+    };
+
+    // Fonction pour envoyer la notification
+    const sendSongNotification = async (filename) => {
+        const hasPermission = await requestNotificationPermission();
+        if (!hasPermission) return;
+
+        await Notifications.scheduleNotificationAsync({
+            content: {
+                title: "Lecture de la chanson" + sound.filename,
+                body: filename,
+            },
+            trigger: null, 
+        });
+    };
 
     const initAudio = async () => {
         try {
@@ -73,12 +190,11 @@ const PlayerScreen = ({ route }) => {
                 await sound.unloadAsync();
                 dispatch(setAudioState({ state: "paused", isLooping: false, position: 0 }));
             }
-            // Encoder l'URI pour éviter les erreurs dues aux caractères spéciaux
+
             const encodedUri = encodeURI(currentSong.uri);
-            console.log("Lecture Encoder  de :", encodedUri); // Ajout du log ici
 
             const { sound: newSound } = await Audio.Sound.createAsync(
-                { uri: encodedUri },  // Utilisation de l'URI encodée
+                { uri: encodedUri },
                 { shouldPlay: true },
                 (playbackStatus) => {
                     if (playbackStatus.isLoaded) {
@@ -86,8 +202,7 @@ const PlayerScreen = ({ route }) => {
                             state: playbackStatus.isPlaying ? "playing" : "paused",
                             isLooping: playbackStatus.isLooping,
                             position: Math.floor(playbackStatus.positionMillis / 1000),
-                        })
-                        );
+                        }));
                     }
 
                     if (playbackStatus.didJustFinish) {
@@ -96,18 +211,16 @@ const PlayerScreen = ({ route }) => {
                         }
                     }
                 }
-
             );
 
             dispatch(setSound(newSound));
-            dispatch(
-                setAudioState({
-                    ...audioState,
-                    state: "playing",
-                })
-            )
+
+            // Envoyer la notification dès qu'une chanson commence
+            sendSongNotification(currentSong.filename);
+
+            dispatch(setAudioState({ ...audioState, state: "playing" }));
         } catch (error) {
-            console.error("Erreur lors de l'initialisation de l'audio :", error);
+            console.log("Erreur lors de l'initialisation de l'audio :", error);
         }
     };
 
@@ -149,6 +262,29 @@ const PlayerScreen = ({ route }) => {
     };
 
 
+    const changePlaybackRate = async (rate) => {
+        if (!sound) return;
+
+        try {
+            // Use setRateAsync to change the playback rate
+            await sound.setRateAsync(rate);
+        } catch (error) {
+            console.log("Erreur lors du changement du taux de lecture :", error);
+        }
+    };
+
+
+    const toggleMenu = () => {
+        setShowMenu(!showMenu);  // Affiche ou masque le menu
+    };
+
+    // Liste des vitesses de lecture
+    const speeds = [
+        { label: 'Normal', rate: 1 },
+        { label: '1.5X', rate: 1.5 },
+        { label: '0.5X', rate: 0.5 },
+    ];
+
 
 
     const togglePlay = async () => {
@@ -162,7 +298,7 @@ const PlayerScreen = ({ route }) => {
                 dispatch(setAudioState({ ...audioState, state: "playing" }));
             }
         } catch (error) {
-            console.error("Erreur lors du contrôle de la lecture :", error);
+            console.log("Erreur lors du contrôle de la lecture :", error);
         }
     };
 
@@ -171,13 +307,19 @@ const PlayerScreen = ({ route }) => {
         try {
             await sound.setPositionAsync(value * 1000);
         } catch (error) {
-            console.error("Erreur lors du changement de position :", error);
+            console.log("Erreur lors du changement de position :", error);
         }
     };
 
     const findCurrentSongIndex = () => queue.findIndex((track) => track.id === currentSong.id);
 
     const skipNext = () => {
+        // Si la boucle est activée, recommence la chanson actuelle
+        if (audioState.isLooping) {
+            sound.setPositionAsync(0); // Remet à zéro la position et redémarre la chanson
+            return;
+        }
+
         const index = findCurrentSongIndex();
         if (index !== -1) {
             const nextSong = index === queue.length - 1 ? queue[0] : queue[index + 1];
@@ -186,7 +328,15 @@ const PlayerScreen = ({ route }) => {
         }
     };
 
+
+
     const skipPrevious = () => {
+        // Si la boucle est activée, recommence la chanson actuelle
+        if (audioState.isLooping) {
+            sound.setPositionAsync(0); // Remet à zéro la position et redémarre la chanson
+            return;
+        }
+
         const index = findCurrentSongIndex();
         if (index !== -1) {
             const prevSong = index === 0 ? queue[queue.length - 1] : queue[index - 1];
@@ -194,6 +344,7 @@ const PlayerScreen = ({ route }) => {
             setCurrentSong(prevSong);
         }
     };
+
 
     const toogleLoop = async () => {
         await sound.setIsLoopingAsync(!audioState.isLooping);
@@ -243,9 +394,26 @@ const PlayerScreen = ({ route }) => {
                         <AppText text={currentSong.artist || "<unknown>"} customStyles={styles.songArtist} />
                     </View>
                 </View>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={toggleMenu}>
                     <MaterialCommunityIcons name="dots-vertical" color={colors.white} size={40} />
                 </TouchableOpacity>
+
+                {/* Affichage du menu si showMenu est vrai */}
+                {showMenu && (
+                    <View style={styles.menu}>
+                        {speeds.map((speed) => (
+                            <TouchableOpacity
+                                key={speed.rate}
+                                onPress={() => {
+                                    changePlaybackRate(speed.rate);
+                                    setShowMenu(false);  // Ferme le menu après sélection
+                                }}
+                            >
+                                <AppText text={speed.label} customStyles={styles.menuItem} />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </View>
 
             <View style={styles.songProgres}>
@@ -303,8 +471,8 @@ const styles = StyleSheet.create({
 
     },
     image: {
-        width: '80%',
-        height: 300,
+        width: '50%',
+        height: 250,
         alignSelf: 'center',
         borderRadius: 30,
     },
@@ -352,5 +520,21 @@ const styles = StyleSheet.create({
     songControls: {
         flexDirection: 'row',
         alignItems: "center",
+    },
+    // Autres styles
+    menu: {
+        flex: 1,
+        position: 'absolute',
+        top: -140,
+        right: 10,
+        backgroundColor: colors.primary,
+        borderRadius: 20,
+        padding: 10,
+        width: 70,
+    },
+    menuItem: {
+        color: colors.white,
+        paddingVertical: 10,
+        textAlign: 'center',
     },
 });
