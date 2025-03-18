@@ -19,7 +19,7 @@ const SplashScreen = () => {
 
     return (
         <Screen customStyles={styles.container}>
-            <Image source={require("../../assets/icon.png")}
+            <Image source={require("../../assets/laurene.png")}
                 style={styles.image}
                 resizeMethod="contain"
             />
